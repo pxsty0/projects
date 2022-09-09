@@ -11,6 +11,9 @@ Gesture Gesture;
 Keypad Keypad;
 RGB5050 RGB5050;
 
+void IsPassCorrect();
+void resetPass();
+
 int password[] = {0, 3, 0, 3};
 int inputvalue[4];
 int ArrayIndex = 0;
@@ -25,6 +28,7 @@ void setup() {
   OLED.begin(0x7A);
   OLED.clearDisplay();
   Wire.setClock(50000);
+  pinMode(D15,OUTPUT);
 }
 
 void loop() {
@@ -78,34 +82,45 @@ void loop() {
         Serial.printf("*", inputvalue[3]);
         OLED.setTextXY(4, 3);
         OLED.putString("*        ");
+        IsPassCorrect();
         ArrayIndex = 0;
-        Serial.println("tekrar");
-        OLED.setTextXY(4, 0);
-        OLED.putString("tekrar      ");
+        resetPass();
         break;
       }
     }
-    if (password[0] == inputvalue[0] && password[1] == inputvalue[1] && password[2] == inputvalue[2] && password[3] == inputvalue[3]) { // şifre doğru ise
-      Serial.println("şifre doğru");
-      OLED.setTextXY(4, 0);
-      OLED.putString("sifre dogru");
-      delay(500);
-      inputvalue[0] = 0;
-      inputvalue[1] = 0;
-      inputvalue[2] = 0;
-      inputvalue[3] = 0;
-      noTone(D0, 0);
-    } else {
-      /*delay(3000); // 3sn  delay(30000); 30sn*/
-      RGB5050.setLedColorData(0, 255, 0, 0);
-      RGB5050.show();
-      tone(D0, 500, 500, 0);
-    }
-  } else {
+  }  else {
     RGB5050.setLedColorData(0, 0, 0, 0);
     RGB5050.show();
-    Serial.println("#################");
     OLED.setTextXY(2, 0);
     OLED.putString("                ");
   }
+}
+
+void IsPassCorrect(){   // Şifre doğru mu ?
+  if (password[0] == inputvalue[0] && password[1] == inputvalue[1] && password[2] == inputvalue[2] && password[3] == inputvalue[3]) { // şifre doğru ise
+    Serial.println(" şifre doğru");
+    OLED.setTextXY(4, 0);
+    OLED.putString("sifre dogru");
+    delay(1000);
+  } else {
+    Serial.println(" şifre yanlış");
+    RGB5050.setLedColorData(0, 0, 0, 255);
+    RGB5050.show();
+    OLED.setTextXY(4, 0);
+    OLED.putString("sifre yanlis");
+    tone(D15,500,500,0);
+    delay(500);
+    tone(D15,800,500,0);
+    delay(500);
+    }
+}
+
+void resetPass(){   // Girilen şifre dizisinin sıfırlanması
+    inputvalue[0] = NULL; 
+    inputvalue[1] = NULL;
+    inputvalue[2] = NULL;
+    inputvalue[3] = NULL;
+    Serial.println(" yeniden şifre giriniz "); 
+    OLED.setTextXY(4, 0);
+    OLED.putString("tekrar      "); 
 }

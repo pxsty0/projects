@@ -65,7 +65,7 @@ void setup() {
   Serial.begin(115200);
   RGB5050.begin();
   RGB5050.setBrightness(10); 
-  pinMode(D0,OUTPUT);
+  pinMode(D15,OUTPUT);
   SDCard.begin(); 
   TempHum.begin(0X44);
   SoilMoisture.begin(0x0F);
@@ -124,14 +124,14 @@ void loop() {
   Serial.print("Ortam Işık Yoğunluğu: ");
   Serial.println(OrtamIsikYogunlugu);
   if(OrtamIsikYogunlugu < 200){
-    tone(D0,500,500,0);
+    tone(D15,500,500,0);
     delay(500);
-    tone(D0,800,500,0);
+    tone(D15,800,500,0);
     delay(500);
     Serial.println("\nORTAM IŞIK YOĞUNLUĞU AZ");
-    tone(D0,500,500,0);
+    tone(D15,500,500,0);
     delay(500);
-    tone(D0,800,500,0);
+    tone(D15,800,500,0);
     delay(500);
     Serial.println("led yanıyor ...");
     dataString += "ORTAM IŞIK YOĞUNLUĞU AZ";
@@ -195,5 +195,5 @@ void loop() {
 
   appendFile(SDCard, "/YeniDosya.txt", dataString.c_str());
   
-  delay(5000);
+  delay(1000);
 }
