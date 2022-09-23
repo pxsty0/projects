@@ -28,7 +28,7 @@ void setup() {
   OLED.begin(0x7A);
   OLED.clearDisplay();
   Wire.setClock(50000);
-  pinMode(D15,OUTPUT);
+  pinMode(D15,OUTPUT); //hoparlör
 }
 
 void loop() {
@@ -64,22 +64,22 @@ void loop() {
       ArrayIndex++;
       switch (ArrayIndex) {
       case 1:
-        Serial.printf("*", inputvalue[0]);
+        Serial.print("*");
         OLED.setTextXY(4, 0);
         OLED.putString("*         ");
         break;
       case 2:
-        Serial.printf("*", inputvalue[1]);
+        Serial.print("*");
         OLED.setTextXY(4, 1);
         OLED.putString("*        ");
         break;
       case 3:
-        Serial.printf("*", inputvalue[2]);
+        Serial.print("*");
         OLED.setTextXY(4, 2);
         OLED.putString("*        ");
         break;
       case 4:
-        Serial.printf("*", inputvalue[3]);
+        Serial.print("*");
         OLED.setTextXY(4, 3);
         OLED.putString("*        ");
         IsPassCorrect();

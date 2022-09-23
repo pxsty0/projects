@@ -65,7 +65,7 @@ void setup() {
   Serial.begin(115200);
   RGB5050.begin();
   RGB5050.setBrightness(10); 
-  pinMode(D15,OUTPUT);
+  pinMode(D15,OUTPUT); // Hoparlör 
   SDCard.begin(); 
   TempHum.begin(0X44);
   SoilMoisture.begin(0x0F);
@@ -74,6 +74,7 @@ void setup() {
   AtmosphericPressure.begin(0x76);
   RTC.begin();
   Wire.setClock(50000);
+  UVlight.setMode(LTR390_MODE_ALS); // Ortam ışığını okumaya ayarlanması.  LTR390_MODE_UVS: ultraviyole ışık verisi
   RTC.deviceStart();
   RTC.adjust();
   writeFile(SDCard, "/YeniDosya.txt", "   VERİLER   \r\n");
@@ -115,14 +116,14 @@ void loop() {
   Serial.println(yagmurDeger);
   delay(10);
 
-  UltraviyoleIsikYogunlugu = UVlight.getLUX();
+/*UltraviyoleIsikYogunlugu = UVlight.getUVI();  // ultraviyole ışık verisi okunursa
   Serial.print("Ultraviyole Işık Yoğunluğu: ");
-  Serial.println(UltraviyoleIsikYogunlugu);
-  delay(10);
+  Serial.println(UltraviyoleIsikYogunlugu); */
   
-  OrtamIsikYogunlugu = UVlight.readALS();
+  OrtamIsikYogunlugu = UVlight.getLUX();  // ortam ışık verisi okunursa
   Serial.print("Ortam Işık Yoğunluğu: ");
   Serial.println(OrtamIsikYogunlugu);
+  
   if(OrtamIsikYogunlugu < 200){
     tone(D15,500,500,0);
     delay(500);
@@ -182,13 +183,13 @@ void loop() {
   dataString += "Yagmur Degeri: ";
   dataString += String(Rain.ReadRainAnalog());
   dataString += "\r\n";
-
+  /*
   dataString += "Ultraviyole Işık Yoğunluğu: ";
-  dataString += String(UVlight.getLUX());
-  dataString += "\r\n";
+  dataString += String(UVlight.getUVI());
+  dataString += "\r\n"; */
   
   dataString += "Ortam Işık Yuğunluğu: ";
-  dataString += String(UVlight.readALS());
+  dataString += String(UVlight.getLUX());
   dataString += "\r\n";
   dataString += "\r\n";
   dataString += "\r\n";
