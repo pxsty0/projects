@@ -1,126 +1,123 @@
-#include <Deneyap_DokunmatikTusTakimi.h>
-#include <Deneyap_SicaklikNemOlcer.h>
-#include <Deneyap_HareketAlgilama.h>
-#include <Deneyap_OLED.h>
-#include "RGB5050.h"
-#include "Tone32.h"
+/*  GuvenlikPaneli
+ *  Bu uygulamada Deneyap Dokunmatik Tuş Takımı, Deneyap Oled, Deneyap Sıcaklık Nem Ölçer, Deneyap Hareker Algılama, Deneyap Hoparlör kullanılmıştır.
+ *  
+ *  Ortamın sıcaklık ve nem bilgisini seri port ekranına ve oled ekranına yazdırmaktadır. Hareket algılanınca kullanıcıdan şifre girilmesi istenmektedir. 
+ *  Dokunmatik tuş takımında girilen şifre doğru ise oled ve seri port ekranına "HAREKET ALGILANDI" yazdırmaktadır. Deneyap Geliştirme Kartlarındaki dahili adreslenebilir RGBLED yeşil yanmaktadır. 
+ *  Şifre yanlış ise hoparlör uyarı vermekte ve RGBLED kırmızı led yanmaktadır. 
+*/
+#include <Deneyap_DokunmatikTusTakimi.h>  // Deneyap Dokunmatik Tuş Takımı kütüphanesi eklenmesi
+#include <Deneyap_OLED.h>                 // Deneyap OLED Ekran kütüphanesinin eklenmesi
+#include <Deneyap_SicaklikNemOlcer.h>     // Deneyap Sıcaklık Nem Ölçer kütüphanesi eklenmesi
+#include <Deneyap_HareketAlgilama.h>      // Deneyap Hareket Algılama kütüphanesi eklenmesi
 
-OLED OLED;
-TempHum TempHum;
-Gesture Gesture;
-Keypad Keypad;
-RGB5050 RGB5050;
+int password[] = { 0, 3, 0, 3 };  // Belirlenen şifre
+int inputvalue[4];                // Girilen şifre
+int ArrayIndex = 0;               // Sayaç
 
-void IsPassCorrect();
-void resetPass();
-
-int password[] = {0, 3, 0, 3};
-int inputvalue[4];
-int ArrayIndex = 0;
+Keypad Keypad;    // Keypad için class tanımlanması
+OLED OLED;        // OLED için class tanımlanması
+TempHum TempHum;  // TempHum için class tanımlanması
+Gesture Gesture;  // Gesture için class tanımlanması
 
 void setup() {
-  Serial.begin(115200);
-  RGB5050.begin();
-  RGB5050.setBrightness(10);
-  TempHum.begin(0x70);
-  Gesture.begin(0x32);
-  Keypad.begin(0x0E);
-  OLED.begin(0x7A);
-  OLED.clearDisplay();
-  Wire.setClock(50000);
-  pinMode(D15,OUTPUT); //hoparlör
+  Serial.begin(115200);  // Seri haberleşme başlatılması
+  Keypad.begin(0x0E);    // begin(slaveAdress) fonksiyonu ile cihazların haberleşmesi başlatılması
+  TempHum.begin(0x70);   // begin(slaveAdress) fonksiyonu ile cihazların haberleşmesi başlatılması
+  Gesture.begin(0x32);   // begin(slaveAdress) fonksiyonu ile cihazların haberleşmesi başlatılması
+  OLED.begin(0x7A);      // begin(slaveAdress) fonksiyonu ile cihazların haberleşmesi başlatılması
+  OLED.clearDisplay();   // OLED ekrandaki verilerin silinmesi
+  pinMode(D15, OUTPUT);  // hoparlör için çıkış pini ayarlanması
 }
 
 void loop() {
-  float Tempvalue = TempHum.getTempValue();
-  Serial.print("Sıcaklık = ");
-  Serial.print(Tempvalue);
+  float TempValue = TempHum.getTempValue();  // Sıcaklık değerinin okunması
+  Serial.print("Sicaklik = ");
+  Serial.print(TempValue);  // Sıcaklık değerinin seri port ekranına yazılması
   OLED.setTextXY(1, 0);
   OLED.putString("Sicaklik: ");
   OLED.setTextXY(1, 10);
-  OLED.putFloat(Tempvalue);
+  OLED.putFloat(TempValue);  // Sıcaklık değerinin oled ekranına yazılması
 
-  float Humvalue = TempHum.getHumValue();
+  float HumValue = TempHum.getHumValue();  // Nem değerinin okunması
   Serial.print("°C   Nem = %");
-  Serial.println(Humvalue);
+  Serial.println(HumValue);  // Nem değerinin seri port ekranına yazılması
   OLED.setTextXY(0, 0);
   OLED.putString("Nem: ");
   OLED.setTextXY(0, 5);
-  OLED.putFloat(Humvalue);
-  
-  bool gestureDurum = Gesture.readGesture();
-  
-  int keyword = Keypad.KeypadRead();
-  
-  if (gestureDurum == 1) {
+  OLED.putFloat(HumValue);  // Nem değerinin oled ekranına yazılması
+
+  bool gestureState = Gesture.readGesture();  // Hareket durumunun okunması
+
+  if (gestureState == 1) {  // Hareket algılanırsa
     Serial.println("Hareket ALGILANDI");
-    OLED.setTextXY(2, 0);
+    OLED.setTextXY(7, 0);
     OLED.putString("Hareket ALGLANDI");
+
+    Serial.println("Şifre giriniz");
     OLED.setTextXY(3, 0);
     OLED.putString("sifre giriniz");
+  }
 
-    if (keyword != 0xFF) {
-      inputvalue[ArrayIndex] = keyword;
-      ArrayIndex++;
-      switch (ArrayIndex) {
-      case 1:
+  int keyword = Keypad.KeypadRead();   // Tuş takımına basılan değeri okuması
+  if (keyword != 0xFF) {               // Tuş takımına basıldığında
+    inputvalue[ArrayIndex] = keyword;  // Birinci dizi sayısına tuş takımı değerini girilmesi
+    ArrayIndex++;                      // Sayacı artırılması
+    switch (ArrayIndex) {
+      case 1:  // Birinci değer girilince ekrana * yazdırılması
         Serial.print("*");
-        OLED.setTextXY(4, 0);
-        OLED.putString("*         ");
+        OLED.setTextXY(5, 0);
+        OLED.putString("*");
         break;
-      case 2:
+      case 2:  // İkinci değer girilince ekrana * yazdırılması
         Serial.print("*");
-        OLED.setTextXY(4, 1);
-        OLED.putString("*        ");
+        OLED.setTextXY(5, 1);
+        OLED.putString("*");
         break;
-      case 3:
+      case 3:  // Üçüncü değer girilince ekrana * yazdırılması
         Serial.print("*");
-        OLED.setTextXY(4, 2);
-        OLED.putString("*        ");
+        OLED.setTextXY(5, 2);
+        OLED.putString("*");
         break;
-      case 4:
+      case 4:  // Dördüncü değer girilince ekrana * yazdırılması
         Serial.print("*");
-        OLED.setTextXY(4, 3);
-        OLED.putString("*        ");
+        OLED.setTextXY(5, 3);
+        OLED.putString("*");
         IsPassCorrect();
         ArrayIndex = 0;
         resetPass();
         break;
-      }
     }
-  }  else {
-    RGB5050.setLedColorData(0, 0, 0, 0);
-    RGB5050.show();
-    OLED.setTextXY(2, 0);
-    OLED.putString("                ");
   }
+  delay(100);
 }
 
-void IsPassCorrect(){   // Şifre doğru mu ?
-  if (password[0] == inputvalue[0] && password[1] == inputvalue[1] && password[2] == inputvalue[2] && password[3] == inputvalue[3]) { // şifre doğru ise
-    Serial.println(" şifre doğru");
-    OLED.setTextXY(4, 0);
-    OLED.putString("sifre dogru");
-    delay(1000);
+void IsPassCorrect() {  // Şifre doğru mu?
+  if (password[0] == inputvalue[0] && password[1] == inputvalue[1] && password[2] == inputvalue[2] && password[3] == inputvalue[3]) {
+    neopixelWrite(RGBLED, 0, 128, 0);  // Şifre doğru ise yeşil led yanması
+    OLED.setTextXY(3, 0);
+    OLED.putString("sifre dogru   ");
+    delay(2000);
   } else {
+    neopixelWrite(RGBLED, 128, 0, 0);  // Şifre yanlış ise kırmızı led yanması
     Serial.println(" şifre yanlış");
-    RGB5050.setLedColorData(0, 0, 0, 255);
-    RGB5050.show();
-    OLED.setTextXY(4, 0);
-    OLED.putString("sifre yanlis");
-    tone(D15,500,500,0);
+    OLED.setTextXY(3, 0);
+    OLED.putString("sifre yanlis   ");
+    delay(2000);
+    tone(D15, 500, 500);
     delay(500);
-    tone(D15,800,500,0);
+    tone(D15, 800, 500);
     delay(500);
-    }
+  }
+  digitalWrite(RGBLED, LOW);
+  OLED.clearDisplay();  // OLED ekrandaki verilerin silinmesi
+  delay(2500);
 }
 
-void resetPass(){   // Girilen şifre dizisinin sıfırlanması
-    inputvalue[0] = NULL; 
-    inputvalue[1] = NULL;
-    inputvalue[2] = NULL;
-    inputvalue[3] = NULL;
-    Serial.println(" yeniden şifre giriniz "); 
-    OLED.setTextXY(4, 0);
-    OLED.putString("tekrar      "); 
+void resetPass() {  // Girilen şifre dizisinin sıfırlanması
+  inputvalue[0] = NULL;
+  inputvalue[1] = NULL;
+  inputvalue[2] = NULL;
+  inputvalue[3] = NULL;
+  Serial.println(" yeniden şifre giriniz ");
+  OLED.setTextXY(3, 0);
 }

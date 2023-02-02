@@ -1,27 +1,30 @@
-#include <Deneyap_GPSveGLONASSkonumBelirleyici.h>
-#include <Deneyap_9EksenAtaletselOlcumBirimi.h>
-#include <Deneyap_6EksenAtaletselOlcumBirimi.h>
-#include <Deneyap_BasincOlcer.h>
-#include <Deneyap_DerinlikOlcer.h>
-#include "FS.h"
-#include "SD.h"
-#include "SPI.h"
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <WiFiAP.h>
+/*  UcusKayitCihazi
+ *  Bu uygulamada Deneyap Basınç Ölçer, Deneyap Derinlik Ölçer, Deneyap 9 Eksen Ataletsel Ölçüm Birimi, Deneyap GPS ve GLONASS Konum Belirleyici kullanılmıştır.
+ *
+ *  Modüllerden okunan basınç, derinlik, akselerometre X Y Z, gyro X Y Z, manyetometre X Y Z, konum, tarih ve saat verilerini webserver, sd karta ve seri port ekranına yazdırmaktadır.
+*/
+#include <Deneyap_BasincOlcer.h>                   // Deneyap Basınç Ölçer kütüphanesi eklenmmesi
+#include <Deneyap_GPSveGLONASSkonumBelirleyici.h>  // Deneyap GPS ve GLONASS Konum Belirleyici kutuphanesi eklenmesi
+#include <Deneyap_DerinlikOlcer.h>                 // Deneyap Derinlik Ölçer kütüphanesi eklenmesi
+#include <Deneyap_6EksenAtaletselOlcumBirimi.h>    // Deneyap 6 Eksen Ataletsel Olcum Birimi kütüphanesi eklenmmesi
+#include <Deneyap_9EksenAtaletselOlcumBirimi.h>    // Deneyap 9 Eksen Ataletsel Olcum Birimi kütüphanesi eklenmmesi
+#include "SD.h"                                    // SD kütüphanesi eklenmmesi
+#include <WiFi.h>                                  // Wi-Fi kütüphanesi eklenmmesi
+#include <WiFiClient.h>                            // WiFiClient kütüphanesi eklenmmesi
+#include <WiFiAP.h>                                // WiFiAP kütüphanesi eklenmmesi
 
-AtmosphericPressure BaroSensor;
-TofRangeFinder Mesafe;
-LSM6DSM AccGyro;
-MAGNETOMETER Magne;
-GPS GPS;
+AtmosphericPressure AtmosphericPressure;  // AtmosphericPressure için class tanımlanması
+TofRangeFinder TofRangeFinder;            // TofRangeFinder için class tanımlanması
+LSM6DSM AccGyro;                          // LSM6DSM için class tanımlanması
+MAGNETOMETER MAGNETOMETER;                // MAGNETOMETER için class tanımlanması
+GPS GPS;                                  // GPS için class tanımlanması
 
-String dataString = "";
+String dataString = "";  // veriyi tutmak icin String degiskeni tanimlanması
 
-const char *ssid = "UcusKayitCihazi";
-const char *password = "deneyapkart1a";
+const char *ssid = "UcusKayitCihazi";    // DeneyapKart Erisim Noktasi (AP) ismi
+const char *password = "deneyapkart1a";  // DeneyapKart Erisim Noktasi (AP) sifresi
 
-WiFiServer server(80);
+WiFiServer server(80);  // WiFi sunucusu icin class tanimlama
 
 /*Dosya yazma fonksiyonu */
 void writeFile(fs::FS &fs, const char *path, const char *message) {
@@ -58,21 +61,20 @@ void appendFile(fs::FS &fs, const char *path, const char *message) {
 }
 
 void setup() {
-  Serial.begin(115200);
-  GPS.begin(0x2F);
-  AccGyro.begin();
-  Magne.begin(0x60);
-  BaroSensor.begin(0x76);
-  Mesafe.begin(0x29);
-  SDCard.begin();
-  writeFile(SDCard, "/YeniDosya.txt", "   VERİLER   \r\n");
+  Serial.begin(115200);                                  // Seri haberleşme başlatılması
+  GPS.begin(0x2F);                                       // begin(slaveAdress) fonksiyonu ile cihazların haberleşmesi başlatılması
+  AccGyro.begin();                                       // begin(slaveAdress) fonksiyonu ile cihazların haberleşmesi başlatılması
+  MAGNETOMETER.begin(0x60);                              // begin(slaveAdress) fonksiyonu ile cihazların haberleşmesi başlatılması
+  AtmosphericPressure.begin(0x76);                       // begin(slaveAdress) fonksiyonu ile cihazların haberleşmesi başlatılması
+  TofRangeFinder.begin(0x29);                            // begin(slaveAdress) fonksiyonu ile cihazların haberleşmesi başlatılması
+  SD.begin();                                            // begin(slaveAdress) fonksiyonu ile cihazların haberleşmesi başlatılması
+  writeFile(SD, "/YeniDosya.txt", "   VERİLER   \r\n");  //YeniDosya.txt uzantılı dosya oluşturuldu.
   Serial.println();
-  Serial.println("Erisim Noktasi (AP) konfigure ediliyor...");
 
-  WiFi.softAP(ssid, password);
+  WiFi.softAP(ssid, password);  // Cihaz Erisim Noktasi (AP) olarak baslatildi
   IPAddress myIP = WiFi.softAPIP();
-  Serial.print("Erisim noktasi IP adresi: "); // 192.168.4.1
-  Serial.println(myIP);
+  Serial.print("Kamera hazir! Baglanmak icin 'http://");  // Bağlantı sağlanması IP adresi seri port ekranına yazdırılıyor  ->192.168.4.1<-
+  Serial.println(myIP);                                   // Görüntünün yayınlanacağı IP adresi seri port ekranına yazılması
   server.begin();
 
   Serial.println("Server baslatildi");
@@ -81,6 +83,7 @@ void setup() {
 void loop() {
   GPS.readGPS(RMC);
 
+  /* Okunan verilerin seri port ekranına yazdırılması */
   Serial.print("Konum: ");
   float lat;
   lat = GPS.readLocationLat();
@@ -138,13 +141,13 @@ void loop() {
   Serial.println(AccGyro.readFloatGyroZ());
   delay(50);
 
-  Serial.println("\nMagnetometre degerleri");
+  Serial.println("\nManyetometre degerleri");
   Serial.print("X ekseni:");
-  Serial.print(Magne.readMagnetometerX());
+  Serial.print(MAGNETOMETER.readMagnetometerX());
   Serial.print("\tY ekseni:");
-  Serial.print(Magne.readMagnetometerY());
+  Serial.print(MAGNETOMETER.readMagnetometerY());
   Serial.print("\tZ ekseni:");
-  Serial.println(Magne.readMagnetometerZ());
+  Serial.println(MAGNETOMETER.readMagnetometerZ());
   delay(50);
 
   Serial.println("\nSicaklik degerleri");
@@ -155,15 +158,16 @@ void loop() {
   delay(50);
 
   Serial.print("\nBasinc: ");
-  Serial.println(BaroSensor.getPressure());
+  Serial.println(AtmosphericPressure.getPressure());
   delay(50);
 
   Serial.print("\nUzaklık: ");
-  Serial.println(Mesafe.ReadDistance());
+  Serial.println(TofRangeFinder.ReadDistance());
   delay(50);
 
   Serial.println(" ");
 
+  /* Okunan verilerin SD karta yazdırılması */
   dataString += "------------------------------------------------------------";
   dataString += "\r\n";
   dataString += "Konum: ";
@@ -212,15 +216,15 @@ void loop() {
   dataString += "\n";
   dataString += "\r\n";
 
-  dataString += "Magnetometre degerleri: ";
+  dataString += "Manyetometre degerleri: ";
   dataString += "X ekseni: ";
-  dataString += String(Magne.readMagnetometerX());
+  dataString += String(MAGNETOMETER.readMagnetometerX());
 
   dataString += " Y ekseni: ";
-  dataString += String(Magne.readMagnetometerY());
+  dataString += String(MAGNETOMETER.readMagnetometerY());
 
   dataString += " Z ekseni: ";
-  dataString += String(Magne.readMagnetometerZ());
+  dataString += String(MAGNETOMETER.readMagnetometerZ());
   dataString += "\n";
   dataString += "\r\n";
 
@@ -234,25 +238,26 @@ void loop() {
   dataString += "\r\n";
 
   dataString += "Basınç: ";
-  dataString += String(BaroSensor.getPressure());
+  dataString += String(AtmosphericPressure.getPressure());
   dataString += "\r\n";
   dataString += "\r\n";
 
   dataString += "Derinlik Ölçer: ";
-  dataString += String(Mesafe.ReadDistance());
+  dataString += String(TofRangeFinder.ReadDistance());
   dataString += "\r\n";
   dataString += "\r\n";
   dataString += "\r\n";
   dataString += "\r\n";
 
-  appendFile(SDCard, "/YeniDosya.txt", dataString.c_str());
+  appendFile(SD, "/YeniDosya.txt", dataString.c_str());
 
-  WiFiClient client = server.available();
+  /* Okunan verilerin web server yazdırılması */
+  WiFiClient client = server.available();  // Baglanti talepleri dinlenmesi
 
-  if (client) {
-    String currentLine = "";
+  if (client) {               // Istemci varligi kontrol edilmesi
+    String currentLine = "";  // Istemciden gelen veriyi tutmak icin String degiskeni tanimlanmasi
     while (client.connected()) {
-      if (client.available()) {
+      if (client.available()) {  // Istemciden veri kontrolu yapilmasi
         client.print("Konum:");
         client.print(GPS.readLocationLat());
         client.print(",");
@@ -288,13 +293,13 @@ void loop() {
         client.print(" Z ekseni: ");
         client.println(AccGyro.readFloatGyroZ());
 
-        client.println("Magnetometre degerleri");
+        client.println("Manyetometre degerleri");
         client.print("X ekseni: ");
-        client.print(Magne.readMagnetometerX());
+        client.print(MAGNETOMETER.readMagnetometerX());
         client.print(" Y ekseni: ");
-        client.print(Magne.readMagnetometerY());
+        client.print(MAGNETOMETER.readMagnetometerY());
         client.print(" Z ekseni: ");
-        client.println(Magne.readMagnetometerZ());
+        client.println(MAGNETOMETER.readMagnetometerZ());
 
         client.print("Sicaklik degerleri:");
         client.print("Celsius: ");
@@ -303,14 +308,14 @@ void loop() {
         client.println(AccGyro.readTempF());
 
         client.print("Basinc: ");
-        client.println(BaroSensor.getPressure());
+        client.println(AtmosphericPressure.getPressure());
 
         client.print("Derinlik: ");
-        client.println(Mesafe.ReadDistance());
+        client.println(TofRangeFinder.ReadDistance());
         client.println(" ");
       }
     }
-    client.stop();
+    client.stop();  // Yanittan sonra http baglantisi durdurulması ve yeni istemci talebi beklenmesi
   }
   Serial.println("");
   delay(1000);
